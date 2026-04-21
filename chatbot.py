@@ -1,4 +1,5 @@
 import os
+import openai
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -9,40 +10,47 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # This list stores the full conversation history
+# Updated with your location context for accuracy
 conversation_history = [
     {
         "role": "system",
-        "content": "You are a helpful, friendly assistant. Answer clearly and concisely."
+        "content": "You are a helpful, friendly assistant. The user is Medhavi in Gurugram, India. Answer clearly and concisely."
     }
 ]
 
 def chat(user_message):
     """Send a message and get a response."""
-    # Add the user's message to history
-    conversation_history.append({
-        "role": "user",
-        "content": user_message
-    })
+    try:
+        # Add the user's message to history
+        conversation_history.append({
+            "role": "user",
+            "content": user_message
+        })
 
-    # Call the OpenAI API
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=conversation_history,
-        max_tokens=500,
-        temperature=0.7
-    )
+        # Call the OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=conversation_history,
+            max_tokens=500,
+            temperature=0.7
+        )
 
-    # Extract the assistant's reply
-    assistant_reply = response.choices[0].message.content
+        # Extract the assistant's reply
+        assistant_reply = response.choices[0].message.content
 
-    # Add the reply to history so the bot remembers context
-    conversation_history.append({
-        "role": "assistant",
-        "content": assistant_reply
-    })
+        # Add the reply to history so the bot remembers context
+        conversation_history.append({
+            "role": "assistant",
+            "content": assistant_reply
+        })
+        return assistant_reply
 
-    return assistant_reply
-
+    except openai.RateLimitError:
+        # Custom message for quota/billing issues
+        return "System Note: The chatbot is currently in standby. As soon as the API quota is updated or payment is processed, I'll be back to assist you!"
+    except Exception as e:
+        # Handles any other unexpected errors
+        return f"An unexpected error occurred: {e}"
 
 def main():
     """Main loop — runs the chatbot in the terminal."""
@@ -67,7 +75,6 @@ def main():
         print("Bot: ", end="", flush=True)
         response = chat(user_input)
         print(response)
-
 
 if __name__ == "__main__":
     main()
